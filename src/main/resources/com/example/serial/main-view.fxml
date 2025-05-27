@@ -1,25 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.chart.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.serial.Controller">
     <children>
-        <VBox spacing="10.0" alignment="TOP_LEFT" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
-            <Label text="Serieller Port:" />
-            <ComboBox fx:id="portComboBox" promptText="Wähle einen Port" prefWidth="200" />
-            
-            <Label text="Baudrate:" />
-            <ComboBox fx:id="baudRateComboBox" promptText="Wähle Baudrate" prefWidth="200" />
+        <VBox spacing="10.0" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
 
-            <HBox spacing="10">
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="Serieller Port:" />
+                <ComboBox fx:id="portComboBox" promptText="Wähle einen Port" prefWidth="150" />
+
+                <Label text="Baudrate:" />
+                <ComboBox fx:id="baudRateComboBox" promptText="Wähle Baudrate" prefWidth="150" />
+
                 <Button text="Open Port" onAction="#onOpenPort" />
                 <Button text="Close Port" onAction="#onClosePort" />
                 <Button text="Refresh Port" onAction="#refreshPorts" />
             </HBox>
 
+            <Label text="Sensorwerte Verlauf:" />
+
+            <HBox spacing="20">
+                <LineChart fx:id="tempHumChart" prefHeight="300" prefWidth="400" animated="false" createSymbols="false">
+                    <xAxis>
+                        <NumberAxis label="Zeit (s)" autoRanging="true" />
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="Wert" autoRanging="true" />
+                    </yAxis>
+                </LineChart>
+
+                <LineChart fx:id="pressChart" prefHeight="300" prefWidth="400" animated="false" createSymbols="false">
+                    <xAxis>
+                        <NumberAxis label="Zeit (s)" autoRanging="true" />
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="hPa" autoRanging="true" />
+                    </yAxis>
+                </LineChart>
+            </HBox>
+
             <Label text="Ausgabe:" />
-            <TextArea fx:id="outputArea" prefRowCount="15" prefColumnCount="50" wrapText="true" editable="false" />
+            <TextArea fx:id="outputArea" prefRowCount="10" prefColumnCount="50" wrapText="true" editable="false" />
         </VBox>
     </children>
 </AnchorPane>
