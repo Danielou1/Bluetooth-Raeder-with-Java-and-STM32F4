@@ -1,5 +1,8 @@
 package com.example.serial;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 import com.fazecast.jSerialComm.SerialPort;
 
 import javafx.application.Platform;
@@ -7,8 +10,10 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
+import javafx.scene.control.TextInputDialog;
 
 public class Controller {
 
@@ -28,6 +33,8 @@ public class Controller {
     private LineChart<Number, Number> pressChart;
 
     private final SerialService serialService = new SerialService();
+    private final ThresholdChecker checker = new ThresholdChecker();
+
     private Thread readThread;
     private final XYChart.Series<Number, Number> tempSeries = new XYChart.Series<>();
     private final XYChart.Series<Number, Number> humSeries = new XYChart.Series<>();
@@ -94,7 +101,7 @@ public class Controller {
                     if (!data.isEmpty()) {
                         Platform.runLater(() -> {
                             outputArea.appendText(data);
-                            parseAndPlotTemperature(data);
+                            parseAndPlotSensorData(data);
                         });
                     }
                     try {
@@ -112,7 +119,7 @@ public class Controller {
         }
     }
 
-    private void parseAndPlotTemperature(String data) {
+    private void parseAndPlotSensorData(String data) {
         try {
             if (data.contains("Temp:") && data.contains("Press:") && data.contains("Hum:")) {
                 String[] parts = data.split(",");
@@ -139,9 +146,19 @@ public class Controller {
                 if (tempSeries.getData().size() > 1000) tempSeries.getData().remove(0);
                 if (humSeries.getData().size() > 1000) humSeries.getData().remove(0);
                 if (pressSeries.getData().size() > 1000) pressSeries.getData().remove(0);
+
+                checkThresholdAndAlert("temperature", temp);
+                checkThresholdAndAlert("humidity", hum);
+                checkThresholdAndAlert("pressure", press);
             }
         } catch (Exception e) {
             outputArea.appendText("[Fehler beim Parsen der Sensordaten]\n");
+        }
+    }
+
+    private void checkThresholdAndAlert(String sensorType, double value) {
+        if (checker.isValueOutOfThreshold(sensorType, (float) value)) {
+            outputArea.appendText("[ALARM] " + sensorType + " außerhalb des Bereichs: " + value + "\n");
         }
     }
 
@@ -157,5 +174,53 @@ public class Controller {
         }
         serialService.closePort();
         outputArea.appendText("Port geschlossen.\n");
+    }
+
+    // 💡 MÉTHODE AJOUTÉE POUR DÉFINIR LES SEUILS
+    @FXML
+    public void openThresholdDialog() {
+        ChoiceDialog<String> choiceDialog = new ChoiceDialog<>("Temperatur", Arrays.asList("Temperatur", "Luftfeuchtigkeit", "Druck"));
+        choiceDialog.setTitle("Schwelle setzen");
+        choiceDialog.setHeaderText("Wähle eine Messgröße");
+        choiceDialog.setContentText("Welche Größe willst du einstellen?");
+        Optional<String> result = choiceDialog.showAndWait();
+
+        result.ifPresent(choice -> {
+            String typeKey = switch (choice) {
+                case "Temperatur" -> "temperature";
+                case "Luftfeuchtigkeit" -> "humidity";
+                case "Druck" -> "pressure";
+                default -> null;
+            };
+            if (typeKey == null) return;
+
+            TextInputDialog minDialog = new TextInputDialog();
+            minDialog.setTitle("Minimale Schwelle");
+            minDialog.setHeaderText("Gib die minimale Schwelle für " + choice + " ein:");
+            Optional<String> minResult = minDialog.showAndWait();
+
+            minResult.ifPresent(minStr -> {
+                try {
+                    float min = Float.parseFloat(minStr);
+
+                    TextInputDialog maxDialog = new TextInputDialog();
+                    maxDialog.setTitle("Maximale Schwelle");
+                    maxDialog.setHeaderText("Gib die maximale Schwelle für " + choice + " ein:");
+                    Optional<String> maxResult = maxDialog.showAndWait();
+
+                    maxResult.ifPresent(maxStr -> {
+                        try {
+                            float max = Float.parseFloat(maxStr);
+                            checker.setThreshold(typeKey, min, max);
+                            outputArea.appendText("[Info] Neue Schwelle gesetzt für " + choice + ": min=" + min + ", max=" + max + "\n");
+                        } catch (NumberFormatException e) {
+                            outputArea.appendText("[Fehler] Ungültige Eingabe für maximale Schwelle.\n");
+                        }
+                    });
+                } catch (NumberFormatException e) {
+                    outputArea.appendText("[Fehler] Ungültige Eingabe für minimale Schwelle.\n");
+                }
+            });
+        });
     }
 }

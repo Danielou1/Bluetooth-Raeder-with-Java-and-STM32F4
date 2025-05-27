@@ -1,3 +1,5 @@
+com\example\serial\ThresholdChecker.class
 com\example\serial\App.class
 com\example\serial\Controller.class
+com\example\serial\ThresholdChecker$Threshold.class
 com\example\serial\SerialService.class
