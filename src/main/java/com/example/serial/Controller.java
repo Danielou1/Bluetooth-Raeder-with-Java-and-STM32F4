@@ -1,19 +1,15 @@
+// Controller.java
 package com.example.serial;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 import com.fazecast.jSerialComm.SerialPort;
-
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.ChoiceDialog;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 public class Controller {
 
@@ -27,18 +23,23 @@ public class Controller {
     private TextArea outputArea;
 
     @FXML
-    private LineChart<Number, Number> tempHumChart;
+    private TextArea commandField;
 
     @FXML
-    private LineChart<Number, Number> pressChart;
+    private ListView<String> suggestionList;
+
+    @FXML
+    private LineChart<Number, Number> tempHumChart;
 
     private final SerialService serialService = new SerialService();
     private final ThresholdChecker checker = new ThresholdChecker();
+    private final CDANGrammarValidator validator = new CDANGrammarValidator();
+    private final CDANSuggester suggester = new CDANSuggester();
+    private final CommandInterpreter interpreter = new CommandInterpreter();
 
     private Thread readThread;
     private final XYChart.Series<Number, Number> tempSeries = new XYChart.Series<>();
     private final XYChart.Series<Number, Number> humSeries = new XYChart.Series<>();
-    private final XYChart.Series<Number, Number> pressSeries = new XYChart.Series<>();
     private int xCounter = 0;
 
     @FXML
@@ -47,15 +48,36 @@ public class Controller {
         baudRateComboBox.setItems(FXCollections.observableArrayList(9600, 19200, 38400, 57600, 115200));
         baudRateComboBox.getSelectionModel().select(Integer.valueOf(9600));
 
-        tempSeries.setName("Temperatur (°C)");
+        tempSeries.setName("Temperatur (\u00b0C)");
         humSeries.setName("Luftfeuchtigkeit (%)");
-        pressSeries.setName("Druck (hPa)");
 
         tempHumChart.setTitle("Temperatur & Luftfeuchtigkeit");
-        pressChart.setTitle("Luftdruck");
-
         tempHumChart.getData().addAll(tempSeries, humSeries);
-        pressChart.getData().add(pressSeries);
+
+        commandField.textProperty().addListener((obs, oldText, newText) -> {
+            List<String> suggestions = suggester.suggestNext(newText);
+            if (!suggestions.isEmpty()) {
+                suggestionList.setItems(FXCollections.observableArrayList(suggestions));
+                suggestionList.setVisible(true);
+            } else {
+                suggestionList.setVisible(false);
+            }
+        });
+
+        suggestionList.setOnMouseClicked(event -> {
+            String selected = suggestionList.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                String[] parts = commandField.getText().trim().split("\\s+");
+                if (parts.length == 1) {
+                    commandField.setText(selected + " ");
+                } else if (parts.length == 2) {
+                    commandField.setText(parts[0] + " " + selected + " ");
+                } else if (parts.length == 3) {
+                    commandField.setText(parts[0] + " " + parts[1] + " " + selected);
+                }
+                suggestionList.setVisible(false);
+            }
+        });
     }
 
     @FXML
@@ -87,7 +109,6 @@ public class Controller {
         }
 
         tempSeries.getData().clear();
-        pressSeries.getData().clear();
         humSeries.getData().clear();
         xCounter = 0;
 
@@ -121,17 +142,14 @@ public class Controller {
 
     private void parseAndPlotSensorData(String data) {
         try {
-            if (data.contains("Temp:") && data.contains("Press:") && data.contains("Hum:")) {
+            if (data.contains("Temp:") && data.contains("Hum:")) {
                 String[] parts = data.split(",");
-                double temp = 0, press = 0, hum = 0;
+                double temp = 0, hum = 0;
 
                 for (String part : parts) {
                     if (part.contains("Temp:")) {
                         String tempStr = part.replace("Temp:", "").replace("C", "").trim();
                         temp = Double.parseDouble(tempStr);
-                    } else if (part.contains("Press:")) {
-                        String pressStr = part.replace("Press:", "").replace("hPa", "").trim();
-                        press = Double.parseDouble(pressStr);
                     } else if (part.contains("Hum:")) {
                         String humStr = part.replace("Hum:", "").replace("%", "").trim();
                         hum = Double.parseDouble(humStr);
@@ -140,16 +158,13 @@ public class Controller {
 
                 tempSeries.getData().add(new XYChart.Data<>(xCounter, temp));
                 humSeries.getData().add(new XYChart.Data<>(xCounter, hum));
-                pressSeries.getData().add(new XYChart.Data<>(xCounter, press));
                 xCounter++;
 
                 if (tempSeries.getData().size() > 1000) tempSeries.getData().remove(0);
                 if (humSeries.getData().size() > 1000) humSeries.getData().remove(0);
-                if (pressSeries.getData().size() > 1000) pressSeries.getData().remove(0);
 
                 checkThresholdAndAlert("temperature", temp);
                 checkThresholdAndAlert("humidity", hum);
-                checkThresholdAndAlert("pressure", press);
             }
         } catch (Exception e) {
             outputArea.appendText("[Fehler beim Parsen der Sensordaten]\n");
@@ -176,10 +191,44 @@ public class Controller {
         outputArea.appendText("Port geschlossen.\n");
     }
 
-    // 💡 MÉTHODE AJOUTÉE POUR DÉFINIR LES SEUILS
+    @FXML
+public void onSendCommand() {
+    if (!serialService.isPortOpen()) {
+        outputArea.appendText("[Fehler] Kein geöffneter Port.\n");
+        return;
+    }
+
+    String command = commandField.getText().trim();
+    if (command.isEmpty()) {
+        outputArea.appendText("[Warnung] Leere Eingabe.\n");
+        return;
+    }
+
+    // Valider selon CDAN-Grammatik
+    CDANGrammarValidator validator = new CDANGrammarValidator();
+    if (!validator.isValid(command)) {
+        outputArea.appendText("[Fehler] Ungültige CDAN-Kommando: '" + command + "'\n");
+        return;
+    }
+
+    // Ajout du délimiteur standard UNIX '\n' uniquement
+    String commandWithNewline = command + "\n";
+    byte[] data = commandWithNewline.getBytes(StandardCharsets.US_ASCII);
+
+    try {
+        SerialPort port = serialService.getSerialPort();
+        port.writeBytes(data, data.length);
+        outputArea.appendText("[Gesendet] " + command + "\n");
+        commandField.clear();
+    } catch (Exception e) {
+        outputArea.appendText("[Fehler beim Senden] " + e.getMessage() + "\n");
+    }
+}
+
+
     @FXML
     public void openThresholdDialog() {
-        ChoiceDialog<String> choiceDialog = new ChoiceDialog<>("Temperatur", Arrays.asList("Temperatur", "Luftfeuchtigkeit", "Druck"));
+         ChoiceDialog<String> choiceDialog = new ChoiceDialog<>("Temperatur", Arrays.asList("Temperatur", "Luftfeuchtigkeit"));
         choiceDialog.setTitle("Schwelle setzen");
         choiceDialog.setHeaderText("Wähle eine Messgröße");
         choiceDialog.setContentText("Welche Größe willst du einstellen?");
@@ -189,7 +238,6 @@ public class Controller {
             String typeKey = switch (choice) {
                 case "Temperatur" -> "temperature";
                 case "Luftfeuchtigkeit" -> "humidity";
-                case "Druck" -> "pressure";
                 default -> null;
             };
             if (typeKey == null) return;

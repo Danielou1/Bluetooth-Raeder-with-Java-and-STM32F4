@@ -64,7 +64,27 @@ mvn javafx:run
 
 ---
 
+## CDAN Command Protocol
+
+This application includes a command interpreter for a simple protocol named `CDAN`. You can send these commands through the serial port to control the device.
+
+| Command | Target | Arguments | Description |
+|---|---|---|---|
+| `LED` | `LD4` | `ON` / `OFF` | Turns the LED on or off. |
+| `STATUS`| `ALL` | - | Requests the status of all components. |
+| `PWM` | `FAN` | `<0-100>` | Sets the fan speed (Pulse Width Modulation) from 0 to 100%. |
+| `TEMP` | `READ` | - | Requests a temperature reading. |
+| `IF` | - | `CONDITION` | Starts a conditional block (e.g., `IF TEMP > 30`). *(Control flow not fully implemented in this version)* |
+| `ENDIF` | - | - | Ends a conditional block. |
+| `WHILE` | - | `CONDITION` | Starts a loop block. *(Control flow not fully implemented in this version)* |
+| `ENDWHILE`| - | - | Ends a loop block. |
+
+**Example:** Sending `LED LD4 ON` will turn on the LD4 light.
+
+---
+
 ## 🧩 Wichtige Maven-Abhängigkeiten
+
 
 **jSerialComm:**
 

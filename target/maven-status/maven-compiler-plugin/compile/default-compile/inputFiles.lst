@@ -1,3 +1,8 @@
 C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\App.java
+C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\CommandInterpreter.java
+C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\CDANCommandType.java
+C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\CDANSuggester.java
 C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\Controller.java
+C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\ThresholdChecker.java
+C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\CDANGrammarValidator.java
 C:\Users\mouns\BluetoothReader\src\main\java\com\example\serial\SerialService.java

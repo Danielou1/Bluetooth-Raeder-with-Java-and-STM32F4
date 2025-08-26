@@ -4,30 +4,31 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.serial.Controller">
-    <children>
-        <VBox spacing="10.0" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.example.serial.Controller" prefWidth="900" prefHeight="600">
 
-            <!-- Port & Baudrate Auswahl -->
-            <HBox spacing="10" alignment="CENTER_LEFT">
+    <children>
+        <VBox spacing="10" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
+
+            <!-- Ligne de sélection Port & Baudrate -->
+            <HBox spacing="10" alignment="CENTER_LEFT" prefHeight="40">
                 <Label text="Serieller Port:" />
                 <ComboBox fx:id="portComboBox" promptText="Wähle einen Port" prefWidth="150" />
-
                 <Label text="Baudrate:" />
                 <ComboBox fx:id="baudRateComboBox" promptText="Wähle Baudrate" prefWidth="150" />
-
                 <Button text="Open Port" onAction="#onOpenPort" />
                 <Button text="Close Port" onAction="#onClosePort" />
                 <Button text="Refresh Ports" onAction="#refreshPorts" />
                 <Button text="Schwellwerte setzen" onAction="#openThresholdDialog" />
             </HBox>
 
-            <!-- Diagrammtitel -->
+            <!-- Label du graphique -->
             <Label text="Sensorwerte Verlauf:" />
 
-            <!-- Diagramme: Temperatur & Feuchtigkeit | Druck -->
-            <HBox spacing="20">
-                <LineChart fx:id="tempHumChart" prefHeight="300" prefWidth="400" animated="false" createSymbols="false">
+            <!-- Conteneur horizontal pour graphe + zone de saisie commandes + suggestions -->
+            <HBox spacing="10" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS">
+
+                <!-- Graphe -->
+                <LineChart fx:id="tempHumChart" animated="false" createSymbols="false" VBox.vgrow="ALWAYS" HBox.hgrow="ALWAYS" prefWidth="450" prefHeight="300">
                     <xAxis>
                         <NumberAxis label="Zeit (s)" autoRanging="true" />
                     </xAxis>
@@ -36,19 +37,24 @@
                     </yAxis>
                 </LineChart>
 
-                <LineChart fx:id="pressChart" prefHeight="300" prefWidth="400" animated="false" createSymbols="false">
-                    <xAxis>
-                        <NumberAxis label="Zeit (s)" autoRanging="true" />
-                    </xAxis>
-                    <yAxis>
-                        <NumberAxis label="hPa" autoRanging="true" />
-                    </yAxis>
-                </LineChart>
+                <!-- Zone de saisie + suggestions -->
+                <VBox spacing="5" HBox.hgrow="ALWAYS" VBox.vgrow="ALWAYS">
+                    <TextArea fx:id="commandField" promptText="Code in CDAN Sprache hier..." wrapText="true"
+                              VBox.vgrow="ALWAYS" prefHeight="300" />
+                    <ListView fx:id="suggestionList" visible="false" VBox.vgrow="ALWAYS" />
+                </VBox>
             </HBox>
 
-            <!-- Konsolenausgabe -->
+            <!-- Zone de sortie texte -->
             <Label text="Ausgabe:" />
-            <TextArea fx:id="outputArea" prefRowCount="10" prefColumnCount="50" wrapText="true" editable="false" />
+            <TextArea fx:id="outputArea" prefRowCount="10" wrapText="true" editable="false" VBox.vgrow="ALWAYS" prefHeight="300" />
+
+            <!-- Bouton envoyer -->
+            <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Button text="run" onAction="#onSendCommand" />
+            </HBox>
+
         </VBox>
     </children>
+
 </AnchorPane>
