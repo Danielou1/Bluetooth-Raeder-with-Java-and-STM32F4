@@ -15,8 +15,8 @@
                 <ComboBox fx:id="portComboBox" promptText="Wähle einen Port" prefWidth="150" />
                 <Label text="Baudrate:" />
                 <ComboBox fx:id="baudRateComboBox" promptText="Wähle Baudrate" prefWidth="150" />
-                <Button text="Open Port" onAction="#onOpenPort" />
-                <Button text="Close Port" onAction="#onClosePort" />
+                <Button fx:id="openPortButton" text="Open Port" onAction="#onOpenPort" />
+                <Button fx:id="closePortButton" text="Close Port" onAction="#onClosePort" />
                 <Button text="Refresh Ports" onAction="#refreshPorts" />
                 <Button text="Schwellwerte setzen" onAction="#openThresholdDialog" />
             </HBox>
@@ -49,9 +49,15 @@
             <Label text="Ausgabe:" />
             <TextArea fx:id="outputArea" prefRowCount="10" wrapText="true" editable="false" VBox.vgrow="ALWAYS" prefHeight="300" />
 
+            <!-- Status Bar -->
+            <HBox alignment="CENTER_LEFT" spacing="5" style="-fx-padding: 5 0 0 0;">
+                <Label text="Status:" style="-fx-font-weight: bold;" />
+                <Label fx:id="statusLabel" text="Déconnecté" textFill="red" />
+            </HBox>
+
             <!-- Bouton envoyer -->
             <HBox spacing="10" alignment="CENTER_RIGHT">
-                <Button text="run" onAction="#onSendCommand" />
+                <Button fx:id="runButton" text="run" onAction="#onSendCommand" />
             </HBox>
 
         </VBox>
